@@ -12,7 +12,7 @@ import { reviewService } from "@/services/reviewService";
 import { authService } from "@/services/authService";
 import type { Product } from "@/mocks/products";
 import type { Review } from "@/mocks/reviews";
-import type { User } from "@/mocks/users";
+import type { User } from "@/types/user";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -21,7 +21,7 @@ const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const [product, setProduct] = useState<Product | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [seller, setSeller] = useState<Omit<User, "password"> | null>(null);
+  const [seller, setSeller] = useState<User | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
   const { addItem } = useCart();

@@ -8,12 +8,12 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Star } from "lucide-react";
 import { authService } from "@/services/authService";
 import { productService } from "@/services/productService";
-import type { User } from "@/mocks/users";
+import type { User } from "@/types/user";
 import type { Product } from "@/mocks/products";
 
 const SellerProfile = () => {
   const { id } = useParams<{ id: string }>();
-  const [seller, setSeller] = useState<Omit<User, "password"> | null>(null);
+  const [seller, setSeller] = useState<User | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {

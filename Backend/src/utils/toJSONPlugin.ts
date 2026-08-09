@@ -5,10 +5,16 @@ import { Schema } from "mongoose";
  * _id -> id (string), drop __v, drop any field marked select:false (e.g. passwordHash).
  */
 export function applyJSONTransform(schema: Schema) {
+  const hiddenPaths: string[] = [];
+  schema.eachPath((path, schemaType) => {
+    if (schemaType.selected === false) hiddenPaths.push(path);
+  });
+
   const transform = (_doc: unknown, ret: Record<string, unknown>) => {
     ret.id = String(ret._id);
     delete ret._id;
     delete ret.__v;
+    for (const path of hiddenPaths) delete ret[path];
     return ret;
   };
   schema.set("toJSON", { virtuals: true, versionKey: false, transform });
