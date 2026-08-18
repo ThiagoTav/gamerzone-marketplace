@@ -7,7 +7,7 @@ import { Schema } from "mongoose";
 export function applyJSONTransform(schema: Schema) {
   const hiddenPaths: string[] = [];
   schema.eachPath((path, schemaType) => {
-    if (schemaType.selected === false) hiddenPaths.push(path);
+    if (schemaType.options.select === false) hiddenPaths.push(path);
   });
 
   const transform = (_doc: unknown, ret: Record<string, unknown>) => {

@@ -7,6 +7,7 @@
  *   logout()               -> Promise<void>
  *   getCurrentUser()       -> Promise<User | null>
  *   getSellerById(id)      -> Promise<User | null>
+ *   checkEmailAvailable(email) -> Promise<boolean>
  */
 
 import { apiFetch } from "@/lib/api";
@@ -40,5 +41,12 @@ export const authService = {
     } catch {
       return null;
     }
+  },
+
+  async checkEmailAvailable(email: string): Promise<boolean> {
+    const { available } = await apiFetch<{ available: boolean }>(
+      `/auth/check-email?email=${encodeURIComponent(email)}`
+    );
+    return available;
   },
 };
