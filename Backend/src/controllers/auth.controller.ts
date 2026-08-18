@@ -5,7 +5,7 @@ import { Cart } from "../models/Cart";
 import { asyncHandler } from "../utils/asyncHandler";
 import { HttpError } from "../utils/HttpError";
 import { parseOrThrow } from "../utils/validate";
-import { loginSchema, registerSchema } from "../validators/auth.schema";
+import { checkEmailSchema, loginSchema, registerSchema } from "../validators/auth.schema";
 
 async function mergeGuestCartIntoUser(req: Request, userId: string) {
   const guestItems = req.session.guestCart ?? [];
@@ -70,4 +70,14 @@ export const me = asyncHandler(async (req: Request, res: Response) => {
   }
   const user = await User.findById(req.session.userId);
   res.json({ user: user ?? null });
+});
+
+export const checkEmail = asyncHandler(async (req: Request, res: Response) => {
+  const result = checkEmailSchema.safeParse(req.query);
+  if (!result.success) {
+    res.json({ available: false });
+    return;
+  }
+  const existing = await User.findOne({ email: result.data.email });
+  res.json({ available: !existing });
 });

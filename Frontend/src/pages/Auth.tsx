@@ -1,36 +1,60 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { ArrowLeft, Zap } from "lucide-react";
+import { ArrowLeft, Check, X, Zap } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { authService } from "@/services/authService";
+import { passwordRules, passwordSchema } from "@/lib/passwordPolicy";
 
 const loginSchema = z.object({
   email: z.string().email("E-mail inválido"),
-  password: z.string().min(6, "Mínimo 6 caracteres"),
+  password: z.string().min(1, "Informe sua senha"),
 });
 
 const signupSchema = z.object({
   name: z.string().min(3, "Nome com no mínimo 3 caracteres"),
   email: z.string().email("E-mail inválido"),
-  password: z.string().min(6, "Mínimo 6 caracteres"),
+  password: passwordSchema,
   confirmPassword: z.string(),
 }).refine((d) => d.password === d.confirmPassword, {
   message: "As senhas não coincidem",
   path: ["confirmPassword"],
 });
 
+const EMAIL_CHECK_DELAY = 500;
+
+function PasswordChecklist({ password }: { password: string }) {
+  return (
+    <ul className="space-y-1 pt-1">
+      {passwordRules.map((rule) => {
+        const passed = rule.test(password);
+        return (
+          <li
+            key={rule.label}
+            className={`flex items-center gap-2 text-xs ${passed ? "text-green-500" : "text-destructive"}`}
+          >
+            {passed ? <Check className="h-3.5 w-3.5 shrink-0" /> : <X className="h-3.5 w-3.5 shrink-0" />}
+            {rule.label}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 const Auth = () => {
   const { login, register, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [emailStatus, setEmailStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
 
   useEffect(() => {
     if (user) navigate("/");
@@ -43,8 +67,27 @@ const Auth = () => {
 
   const signupForm = useForm<z.infer<typeof signupSchema>>({
     resolver: zodResolver(signupSchema),
+    mode: "onChange",
     defaultValues: { name: "", email: "", password: "", confirmPassword: "" },
   });
+
+  const signupPassword = signupForm.watch("password");
+  const signupEmail = signupForm.watch("email");
+
+  useEffect(() => {
+    if (!z.string().email().safeParse(signupEmail).success) {
+      setEmailStatus("idle");
+      return;
+    }
+    setEmailStatus("checking");
+    const timeout = setTimeout(() => {
+      authService
+        .checkEmailAvailable(signupEmail)
+        .then((available) => setEmailStatus(available ? "available" : "taken"))
+        .catch(() => setEmailStatus("idle"));
+    }, EMAIL_CHECK_DELAY);
+    return () => clearTimeout(timeout);
+  }, [signupEmail]);
 
   const handleLogin = async (v: z.infer<typeof loginSchema>) => {
     try {
@@ -66,6 +109,12 @@ const Auth = () => {
     }
   };
 
+  const signupBlocked =
+    signupForm.formState.isSubmitting ||
+    !signupForm.formState.isValid ||
+    emailStatus === "taken" ||
+    emailStatus === "checking";
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-gradient-gamer opacity-10" />
@@ -84,9 +133,6 @@ const Auth = () => {
               </div>
             </div>
             <CardTitle className="text-3xl font-bold">GamerZone</CardTitle>
-            <CardDescription>
-              Contas de teste: <code className="text-primary">teste@test.com</code> / <code className="text-primary">123456</code>
-            </CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="login">
@@ -135,13 +181,22 @@ const Auth = () => {
                         <FormLabel>E-mail</FormLabel>
                         <FormControl><Input type="email" placeholder="seu@email.com" {...field} /></FormControl>
                         <FormMessage />
+                        {emailStatus === "checking" && (
+                          <p className="text-xs text-muted-foreground">Verificando disponibilidade...</p>
+                        )}
+                        {emailStatus === "taken" && (
+                          <p className="text-xs text-destructive">Este e-mail já está cadastrado.</p>
+                        )}
+                        {emailStatus === "available" && (
+                          <p className="text-xs text-green-500">E-mail disponível.</p>
+                        )}
                       </FormItem>
                     )} />
                     <FormField control={signupForm.control} name="password" render={({ field }) => (
                       <FormItem>
                         <FormLabel>Senha</FormLabel>
                         <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
-                        <FormMessage />
+                        {signupPassword.length > 0 && <PasswordChecklist password={signupPassword} />}
                       </FormItem>
                     )} />
                     <FormField control={signupForm.control} name="confirmPassword" render={({ field }) => (
@@ -151,7 +206,7 @@ const Auth = () => {
                         <FormMessage />
                       </FormItem>
                     )} />
-                    <Button type="submit" disabled={signupForm.formState.isSubmitting}
+                    <Button type="submit" disabled={signupBlocked}
                       className="w-full bg-gradient-gamer hover:opacity-90 shadow-glow-primary">
                       {signupForm.formState.isSubmitting ? "Criando..." : "Criar conta"}
                     </Button>
