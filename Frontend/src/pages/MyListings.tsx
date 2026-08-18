@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Edit, Trash2, Play, Pause, Plus } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { productService } from "@/services/productService";
-import type { Product, ProductStatus } from "@/mocks/products";
+import { resolveImageUrl } from "@/lib/api";
+import type { Product, ProductStatus } from "@/types/product";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -21,18 +22,18 @@ const statusMeta: Record<ProductStatus, { label: string; className: string }> = 
 };
 
 const MyListings = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    if (!user) { navigate("/auth"); return; }
-  }, [user, navigate]);
+    if (!authLoading && !user) navigate("/auth");
+  }, [user, authLoading, navigate]);
 
   const refresh = useCallback(async () => {
     if (!user) return;
-    const list = await productService.getBySellerId(user.id);
+    const list = await productService.getMine();
     setProducts(list);
   }, [user]);
 
@@ -76,7 +77,7 @@ const MyListings = () => {
             {products.map((p) => (
               <Card key={p.id} className="bg-gradient-card border-border">
                 <CardContent className="p-4 flex flex-col sm:flex-row gap-4">
-                  <img src={p.images[0]} alt={p.title} className="w-full sm:w-32 h-32 object-cover rounded-lg" />
+                  <img src={resolveImageUrl(p.images[0])} alt={p.title} className="w-full sm:w-32 h-32 object-cover rounded-lg" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <Badge className={statusMeta[p.status].className}>{statusMeta[p.status].label}</Badge>

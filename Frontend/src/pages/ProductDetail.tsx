@@ -10,7 +10,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { productService } from "@/services/productService";
 import { reviewService } from "@/services/reviewService";
 import { authService } from "@/services/authService";
-import type { Product } from "@/mocks/products";
+import { resolveImageUrl } from "@/lib/api";
+import type { Product } from "@/types/product";
 import type { Review } from "@/mocks/reviews";
 import type { User } from "@/types/user";
 import { useCart } from "@/context/CartContext";
@@ -99,7 +100,7 @@ const ProductDetail = () => {
                 {product.images.map((img, i) => (
                   <CarouselItem key={i}>
                     <div className="aspect-square rounded-lg overflow-hidden bg-card border border-border">
-                      <img src={img} alt={`${product.title} ${i + 1}`} className="w-full h-full object-cover" />
+                      <img src={resolveImageUrl(img)} alt={`${product.title} ${i + 1}`} className="w-full h-full object-cover" />
                     </div>
                   </CarouselItem>
                 ))}

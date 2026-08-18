@@ -3,11 +3,12 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { Product } from "@/mocks/products";
+import type { Product } from "@/types/product";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState } from "react";
 import { authService } from "@/services/authService";
+import { resolveImageUrl } from "@/lib/api";
 
 interface ProductCardProps {
   product: Product;
@@ -34,7 +35,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
       <Link to={`/product/${product.id}`}>
         <div className="relative overflow-hidden aspect-square bg-muted">
           <img
-            src={product.images[0]}
+            src={resolveImageUrl(product.images[0])}
             alt={product.title}
             className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-500"
           />

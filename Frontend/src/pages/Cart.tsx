@@ -7,7 +7,8 @@ import { Separator } from "@/components/ui/separator";
 import { Trash2, Plus, Minus, ShoppingBag } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { productService } from "@/services/productService";
-import type { Product } from "@/mocks/products";
+import { resolveImageUrl } from "@/lib/api";
+import type { Product } from "@/types/product";
 
 const Cart = () => {
   const { items, removeItem, updateQuantity } = useCart();
@@ -51,7 +52,7 @@ const Cart = () => {
                 return (
                   <Card key={item.productId} className="bg-gradient-card border-border animate-fade-in">
                     <CardContent className="p-6 flex gap-4">
-                      <img src={p.images[0]} alt={p.title} className="w-24 h-24 object-cover rounded-lg" />
+                      <img src={resolveImageUrl(p.images[0])} alt={p.title} className="w-24 h-24 object-cover rounded-lg" />
                       <div className="flex-1">
                         <h3 className="font-bold mb-1">{p.title}</h3>
                         <p className="text-2xl font-bold text-primary mb-3">R$ {p.price.toFixed(2)}</p>
