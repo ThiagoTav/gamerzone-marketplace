@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { CreditCard, Lock, CheckCircle2 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { productService } from "@/services/productService";
-import type { Product } from "@/mocks/products";
+import type { Product } from "@/types/product";
 import { useToast } from "@/hooks/use-toast";
 
 const Checkout = () => {

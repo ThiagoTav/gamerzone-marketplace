@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { productService, ProductFilters } from "@/services/productService";
-import { CATEGORIES, Product } from "@/mocks/products";
+import { CATEGORIES } from "@/types/product";
+import type { Product } from "@/types/product";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const Index = () => {

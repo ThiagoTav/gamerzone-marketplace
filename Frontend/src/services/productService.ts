@@ -1,34 +1,19 @@
 /**
- * productService — camada de "API fake" para produtos.
+ * productService — CRUD de anúncios via API real.
  *
- * Contrato (será substituído por fetch() para API real):
- *   getAll(filters?)                 -> Promise<Product[]>
- *   getById(id)                      -> Promise<Product | null>
- *   getBySellerId(sellerId)          -> Promise<Product[]>
- *   create(data, sellerId)           -> Promise<Product>
- *   update(id, patch)                -> Promise<Product>
- *   remove(id)                       -> Promise<void>
- *   setStatus(id, status)            -> Promise<Product>
+ * Contrato:
+ *   getAll(filters?)        -> Promise<Product[]>
+ *   getById(id)              -> Promise<Product | null>
+ *   getBySellerId(sellerId)  -> Promise<Product[]> (público, só ativos)
+ *   getMine()                 -> Promise<Product[]> (autenticado, todos os status)
+ *   create(data)              -> Promise<Product>
+ *   update(id, patch)         -> Promise<Product>
+ *   remove(id)                 -> Promise<void>
+ *   setStatus(id, status)     -> Promise<Product>
  */
 
-import { mockProducts, Product, ProductStatus } from "@/mocks/products";
-
-const STORAGE_KEY = "marketplace_products";
-const LATENCY = 250;
-
-const delay = <T,>(data: T): Promise<T> =>
-  new Promise((resolve) => setTimeout(() => resolve(data), LATENCY));
-
-function load(): Product[] {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored) return JSON.parse(stored);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(mockProducts));
-  return mockProducts;
-}
-
-function save(products: Product[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
-}
+import { apiFetch, ApiError } from "@/lib/api";
+import type { Product, ProductStatus } from "@/types/product";
 
 export interface ProductFilters {
   search?: string;
@@ -38,62 +23,54 @@ export interface ProductFilters {
   condition?: "new" | "used";
 }
 
+export type ProductInput = Omit<Product, "id" | "status" | "createdAt" | "updatedAt" | "sellerId">;
+
+function buildQuery(filters: ProductFilters): string {
+  const params = new URLSearchParams();
+  if (filters.search) params.set("search", filters.search);
+  if (filters.category) params.set("category", filters.category);
+  if (filters.condition) params.set("condition", filters.condition);
+  if (filters.minPrice != null) params.set("minPrice", String(filters.minPrice));
+  if (filters.maxPrice != null) params.set("maxPrice", String(filters.maxPrice));
+  const qs = params.toString();
+  return qs ? `?${qs}` : "";
+}
+
 export const productService = {
   async getAll(filters: ProductFilters = {}): Promise<Product[]> {
-    let items = load().filter((p) => p.status === "active");
-    if (filters.search) {
-      const q = filters.search.toLowerCase();
-      items = items.filter((p) => p.title.toLowerCase().includes(q) || p.category.toLowerCase().includes(q));
-    }
-    if (filters.category) items = items.filter((p) => p.category === filters.category);
-    if (filters.condition) items = items.filter((p) => p.condition === filters.condition);
-    if (filters.minPrice != null) items = items.filter((p) => p.price >= filters.minPrice!);
-    if (filters.maxPrice != null) items = items.filter((p) => p.price <= filters.maxPrice!);
-    return delay(items);
+    return apiFetch<Product[]>(`/products${buildQuery(filters)}`);
   },
 
   async getById(id: string): Promise<Product | null> {
-    const found = load().find((p) => p.id === id) ?? null;
-    return delay(found);
+    try {
+      return await apiFetch<Product>(`/products/${id}`);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) return null;
+      throw err;
+    }
   },
 
   async getBySellerId(sellerId: string): Promise<Product[]> {
-    const items = load().filter((p) => p.sellerId === sellerId);
-    return delay(items);
+    return apiFetch<Product[]>(`/products/seller/${sellerId}`);
   },
 
-  async create(
-    data: Omit<Product, "id" | "status" | "createdAt" | "sellerId">,
-    sellerId: string
-  ): Promise<Product> {
-    const items = load();
-    const newProduct: Product = {
-      ...data,
-      id: `p${Date.now()}`,
-      status: "active",
-      createdAt: new Date().toISOString(),
-      sellerId,
-    };
-    items.push(newProduct);
-    save(items);
-    return delay(newProduct);
+  async getMine(): Promise<Product[]> {
+    return apiFetch<Product[]>("/products/mine");
   },
 
-  async update(id: string, patch: Partial<Product>): Promise<Product> {
-    const items = load();
-    const idx = items.findIndex((p) => p.id === id);
-    if (idx === -1) throw new Error("Produto não encontrado");
-    items[idx] = { ...items[idx], ...patch };
-    save(items);
-    return delay(items[idx]);
+  async create(data: ProductInput): Promise<Product> {
+    return apiFetch<Product>("/products", { method: "POST", body: data });
+  },
+
+  async update(id: string, patch: Partial<ProductInput>): Promise<Product> {
+    return apiFetch<Product>(`/products/${id}`, { method: "PUT", body: patch });
   },
 
   async remove(id: string): Promise<void> {
-    save(load().filter((p) => p.id !== id));
-    return delay(undefined);
+    await apiFetch<void>(`/products/${id}`, { method: "DELETE" });
   },
 
   async setStatus(id: string, status: ProductStatus): Promise<Product> {
-    return this.update(id, { status });
+    return apiFetch<Product>(`/products/${id}/status`, { method: "PATCH", body: { status } });
   },
 };

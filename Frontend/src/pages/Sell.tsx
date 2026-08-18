@@ -11,13 +11,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { X, Upload, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { productService } from "@/services/productService";
-import { CATEGORIES } from "@/mocks/products";
+import { uploadService } from "@/services/uploadService";
+import { resolveImageUrl } from "@/lib/api";
+import { CATEGORIES } from "@/types/product";
 import { useToast } from "@/hooks/use-toast";
 
 const Sell = () => {
   const { id } = useParams<{ id: string }>();
   const isEdit = Boolean(id);
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -29,10 +31,11 @@ const Sell = () => {
   const [images, setImages] = useState<string[]>([]);
   const [specs, setSpecs] = useState<{ key: string; value: string }[]>([{ key: "", value: "" }]);
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    if (!user) navigate("/auth");
-  }, [user, navigate]);
+    if (!authLoading && !user) navigate("/auth");
+  }, [user, authLoading, navigate]);
 
   useEffect(() => {
     if (!isEdit || !id) return;
@@ -48,13 +51,19 @@ const Sell = () => {
     });
   }, [id, isEdit]);
 
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    files.forEach((f) => {
-      const reader = new FileReader();
-      reader.onload = () => setImages((prev) => [...prev, reader.result as string]);
-      reader.readAsDataURL(f);
-    });
+    e.target.value = "";
+    if (files.length === 0) return;
+    setUploading(true);
+    try {
+      const urls = await uploadService.uploadImages(files);
+      setImages((prev) => [...prev, ...urls]);
+    } catch (err: any) {
+      toast({ title: "Erro ao enviar imagem", description: err.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -75,7 +84,7 @@ const Sell = () => {
         await productService.update(id, data);
         toast({ title: "Anúncio atualizado!" });
       } else {
-        await productService.create(data, user.id);
+        await productService.create(data);
         toast({ title: "Anúncio publicado!" });
       }
       navigate("/my-listings");
@@ -134,14 +143,16 @@ const Sell = () => {
             <CardContent>
               <label className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-lg p-8 cursor-pointer hover:border-primary transition-colors">
                 <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                <span className="text-sm text-muted-foreground">Clique para adicionar imagens</span>
-                <input type="file" accept="image/*" multiple className="hidden" onChange={handleFile} />
+                <span className="text-sm text-muted-foreground">
+                  {uploading ? "Enviando..." : "Clique para adicionar imagens"}
+                </span>
+                <input type="file" accept="image/*" multiple className="hidden" onChange={handleFile} disabled={uploading} />
               </label>
               {images.length > 0 && (
                 <div className="grid grid-cols-4 gap-3 mt-4">
                   {images.map((img, i) => (
                     <div key={i} className="relative group aspect-square rounded-lg overflow-hidden border border-border">
-                      <img src={img} alt="" className="w-full h-full object-cover" />
+                      <img src={resolveImageUrl(img)} alt="" className="w-full h-full object-cover" />
                       <button type="button" onClick={() => setImages(images.filter((_, idx) => idx !== i))}
                         className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <X className="h-3 w-3" />
@@ -175,7 +186,7 @@ const Sell = () => {
             </CardContent>
           </Card>
 
-          <Button type="submit" disabled={loading}
+          <Button type="submit" disabled={loading || uploading}
             className="w-full bg-gradient-gamer hover:opacity-90 h-12 shadow-glow-primary text-lg">
             {loading ? "Salvando..." : isEdit ? "Salvar alterações" : "Publicar anúncio"}
           </Button>

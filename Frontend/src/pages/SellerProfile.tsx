@@ -9,7 +9,7 @@ import { ArrowLeft, Star } from "lucide-react";
 import { authService } from "@/services/authService";
 import { productService } from "@/services/productService";
 import type { User } from "@/types/user";
-import type { Product } from "@/mocks/products";
+import type { Product } from "@/types/product";
 
 const SellerProfile = () => {
   const { id } = useParams<{ id: string }>();
@@ -19,9 +19,7 @@ const SellerProfile = () => {
   useEffect(() => {
     if (!id) return;
     authService.getSellerById(id).then(setSeller);
-    productService.getBySellerId(id).then((list) =>
-      setProducts(list.filter((p) => p.status === "active"))
-    );
+    productService.getBySellerId(id).then(setProducts);
   }, [id]);
 
   if (!seller) {
