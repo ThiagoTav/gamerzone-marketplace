@@ -7,6 +7,7 @@ const productSchema = new Schema(
     description: { type: String, required: true },
     category: { type: String, required: true, enum: CATEGORIES },
     price: { type: Number, required: true, min: 0 },
+    stock: { type: Number, required: true, min: 0 },
     condition: { type: String, enum: ["new", "used"], required: true },
     status: { type: String, enum: ["active", "paused", "sold"], default: "active" },
     images: { type: [String], default: [] },

@@ -8,11 +8,31 @@ import { Trash2, Plus, Minus, ShoppingBag } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { productService } from "@/services/productService";
 import { resolveImageUrl } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 import type { Product } from "@/types/product";
 
 const Cart = () => {
   const { items, removeItem, updateQuantity } = useCart();
   const [products, setProducts] = useState<Record<string, Product>>({});
+  const { toast } = useToast();
+
+  const handleUpdateQuantity = async (productId: string, quantity: number) => {
+    try {
+      await updateQuantity(productId, quantity);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : undefined;
+      toast({ title: "Erro ao atualizar quantidade", description: message, variant: "destructive" });
+    }
+  };
+
+  const handleRemove = async (productId: string) => {
+    try {
+      await removeItem(productId);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : undefined;
+      toast({ title: "Erro ao remover item", description: message, variant: "destructive" });
+    }
+  };
 
   useEffect(() => {
     Promise.all(items.map((i) => productService.getById(i.productId))).then((list) => {
@@ -59,16 +79,17 @@ const Cart = () => {
                         <div className="flex items-center gap-3">
                           <div className="flex items-center border border-border rounded-lg overflow-hidden">
                             <Button variant="ghost" size="sm" className="rounded-none h-8 w-8"
-                              onClick={() => updateQuantity(p.id, item.quantity - 1)}>
+                              onClick={() => handleUpdateQuantity(p.id, item.quantity - 1)}>
                               <Minus className="h-4 w-4" />
                             </Button>
                             <span className="px-4 font-semibold">{item.quantity}</span>
                             <Button variant="ghost" size="sm" className="rounded-none h-8 w-8"
-                              onClick={() => updateQuantity(p.id, item.quantity + 1)}>
+                              disabled={item.quantity >= p.stock}
+                              onClick={() => handleUpdateQuantity(p.id, item.quantity + 1)}>
                               <Plus className="h-4 w-4" />
                             </Button>
                           </div>
-                          <Button variant="ghost" size="sm" onClick={() => removeItem(p.id)}
+                          <Button variant="ghost" size="sm" onClick={() => handleRemove(p.id)}
                             className="text-destructive hover:bg-destructive/10">
                             <Trash2 className="h-4 w-4 mr-2" /> Remover
                           </Button>

@@ -87,6 +87,7 @@ const MyListings = () => {
                     <p className="text-2xl font-bold bg-gradient-gamer bg-clip-text text-transparent">
                       R$ {p.price.toFixed(2)}
                     </p>
+                    <p className="text-xs text-muted-foreground">{p.stock} em estoque</p>
                   </div>
                   <div className="flex sm:flex-col gap-2">
                     <Button variant="outline" size="sm" onClick={() => navigate(`/sell/${p.id}`)}>

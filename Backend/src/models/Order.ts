@@ -1,5 +1,6 @@
 import { Schema, model } from "mongoose";
 import { applyJSONTransform } from "../utils/toJSONPlugin";
+import { ORDER_ITEM_STATUSES } from "../constants/orderStatus";
 
 const orderItemSchema = new Schema(
   {
@@ -8,6 +9,10 @@ const orderItemSchema = new Schema(
     price: { type: Number, required: true },
     quantity: { type: Number, required: true, min: 1 },
     sellerId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    // Snapshot da capa do produto no momento da compra — não depende do produto
+    // continuar existindo/inalterado depois (mesma lógica de title/price acima).
+    image: { type: String, default: "" },
+    status: { type: String, enum: ORDER_ITEM_STATUSES, default: "processing" },
   },
   { _id: false }
 );
@@ -27,7 +32,6 @@ const orderSchema = new Schema(
     buyerId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     items: { type: [orderItemSchema], required: true },
     total: { type: Number, required: true, min: 0 },
-    status: { type: String, enum: ["pending", "completed", "cancelled"], default: "completed" },
     shippingAddress: { type: shippingAddressSchema, required: true },
     paymentSimulated: { type: Boolean, default: true },
   },
@@ -35,6 +39,7 @@ const orderSchema = new Schema(
 );
 
 orderSchema.index({ buyerId: 1, createdAt: -1 });
+orderSchema.index({ "items.sellerId": 1, createdAt: -1 });
 
 applyJSONTransform(orderSchema);
 

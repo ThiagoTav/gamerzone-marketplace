@@ -58,8 +58,13 @@ const ProductDetail = () => {
 
   const handleAdd = async () => {
     if (!product) return;
-    await addItem(product.id, quantity);
-    toast({ title: "Adicionado ao carrinho!", description: `${quantity}x ${product.title}` });
+    try {
+      await addItem(product.id, quantity);
+      toast({ title: "Adicionado ao carrinho!", description: `${quantity}x ${product.title}` });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : undefined;
+      toast({ title: "Erro ao adicionar ao carrinho", description: message, variant: "destructive" });
+    }
   };
 
   const handleReviewSubmit = async (e: React.FormEvent) => {
@@ -175,9 +180,12 @@ const ProductDetail = () => {
                 </div>
               )}
 
-              <div className="text-5xl font-bold bg-gradient-gamer bg-clip-text text-transparent mb-6">
+              <div className="text-5xl font-bold bg-gradient-gamer bg-clip-text text-transparent mb-2">
                 R$ {product.price.toFixed(2)}
               </div>
+              <p className={`text-sm ${product.stock === 0 ? "text-destructive" : "text-muted-foreground"} mb-4`}>
+                {product.stock === 0 ? "Esgotado" : `${product.stock} em estoque`}
+              </p>
             </div>
 
             {seller && (
@@ -207,16 +215,22 @@ const ProductDetail = () => {
               </CardContent>
             </Card>
 
-            <div className="flex gap-4">
-              <div className="flex items-center border border-border rounded-lg overflow-hidden">
-                <Button variant="ghost" size="sm" onClick={() => setQuantity(Math.max(1, quantity - 1))} className="rounded-none">-</Button>
-                <span className="px-6 font-semibold">{quantity}</span>
-                <Button variant="ghost" size="sm" onClick={() => setQuantity(quantity + 1)} className="rounded-none">+</Button>
+            {product.stock > 0 ? (
+              <div className="flex gap-4">
+                <div className="flex items-center border border-border rounded-lg overflow-hidden">
+                  <Button variant="ghost" size="sm" onClick={() => setQuantity((q) => Math.max(1, q - 1))} className="rounded-none">-</Button>
+                  <span className="px-6 font-semibold">{quantity}</span>
+                  <Button variant="ghost" size="sm" onClick={() => setQuantity((q) => Math.min(product.stock, q + 1))} className="rounded-none">+</Button>
+                </div>
+                <Button onClick={handleAdd} className="flex-1 bg-gradient-gamer hover:opacity-90 text-lg h-12 shadow-glow-primary">
+                  <ShoppingCart className="mr-2 h-5 w-5" /> Adicionar ao Carrinho
+                </Button>
               </div>
-              <Button onClick={handleAdd} className="flex-1 bg-gradient-gamer hover:opacity-90 text-lg h-12 shadow-glow-primary">
-                <ShoppingCart className="mr-2 h-5 w-5" /> Adicionar ao Carrinho
+            ) : (
+              <Button disabled className="w-full text-lg h-12">
+                Esgotado
               </Button>
-            </div>
+            )}
           </div>
         </div>
 
@@ -277,6 +291,7 @@ const ProductDetail = () => {
                 <Card key={r.id} className="bg-gradient-card border-border">
                   <CardContent className="p-6 flex gap-4">
                     <Avatar className="border-2 border-primary">
+                      <AvatarImage src={resolveImageUrl(r.authorAvatar ?? "")} />
                       <AvatarFallback className="bg-primary/20 text-primary">
                         {r.authorName.split(" ").map((n) => n[0]).join("")}
                       </AvatarFallback>

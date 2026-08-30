@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import { Cart } from "../models/Cart";
+import { Product } from "../models/Product";
 import { asyncHandler } from "../utils/asyncHandler";
+import { HttpError } from "../utils/HttpError";
 import { parseOrThrow } from "../utils/validate";
 import { addCartItemSchema, updateCartItemSchema } from "../validators/cart.schema";
 
@@ -26,6 +28,15 @@ async function writeCart(req: Request, items: PlainItem[]): Promise<void> {
   req.session.guestCart = items;
 }
 
+async function assertAvailable(productId: string, desiredQuantity: number): Promise<void> {
+  const product = await Product.findById(productId);
+  if (!product) throw new HttpError(404, "Produto não encontrado");
+  if (product.status !== "active") throw new HttpError(409, "Produto não está mais disponível");
+  if (desiredQuantity > product.stock) {
+    throw new HttpError(400, `Apenas ${product.stock} unidade(s) disponível(is)`);
+  }
+}
+
 export const getCart = asyncHandler(async (req: Request, res: Response) => {
   res.json({ items: await readCart(req) });
 });
@@ -34,7 +45,9 @@ export const addItem = asyncHandler(async (req: Request, res: Response) => {
   const { productId, quantity } = parseOrThrow(addCartItemSchema, req.body);
   const items = await readCart(req);
   const existing = items.find((i) => i.productId === productId);
-  if (existing) existing.quantity += quantity;
+  const desiredQuantity = (existing?.quantity ?? 0) + quantity;
+  await assertAvailable(productId, desiredQuantity);
+  if (existing) existing.quantity = desiredQuantity;
   else items.push({ productId, quantity });
   await writeCart(req, items);
   res.json({ items });
@@ -46,6 +59,7 @@ export const updateQuantity = asyncHandler(async (req: Request, res: Response) =
   if (quantity <= 0) {
     items = items.filter((i) => i.productId !== req.params.productId);
   } else {
+    await assertAvailable(req.params.productId, quantity);
     const item = items.find((i) => i.productId === req.params.productId);
     if (item) item.quantity = quantity;
   }

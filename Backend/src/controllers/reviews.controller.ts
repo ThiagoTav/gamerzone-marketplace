@@ -29,6 +29,7 @@ export const create = asyncHandler(async (req: Request, res: Response) => {
     productId: req.params.productId,
     authorId: req.session.userId,
     authorName: author!.name,
+    authorAvatar: author!.avatar,
     rating: data.rating,
     comment: data.comment,
   });
