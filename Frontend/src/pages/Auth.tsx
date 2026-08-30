@@ -8,11 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { ArrowLeft, Check, X, Zap } from "lucide-react";
+import { ArrowLeft, Zap } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { authService } from "@/services/authService";
-import { passwordRules, passwordSchema } from "@/lib/passwordPolicy";
+import { passwordSchema } from "@/lib/passwordPolicy";
+import { PasswordChecklist } from "@/components/PasswordChecklist";
 
 const loginSchema = z.object({
   email: z.string().email("E-mail inválido"),
@@ -30,25 +31,6 @@ const signupSchema = z.object({
 });
 
 const EMAIL_CHECK_DELAY = 500;
-
-function PasswordChecklist({ password }: { password: string }) {
-  return (
-    <ul className="space-y-1 pt-1">
-      {passwordRules.map((rule) => {
-        const passed = rule.test(password);
-        return (
-          <li
-            key={rule.label}
-            className={`flex items-center gap-2 text-xs ${passed ? "text-green-500" : "text-destructive"}`}
-          >
-            {passed ? <Check className="h-3.5 w-3.5 shrink-0" /> : <X className="h-3.5 w-3.5 shrink-0" />}
-            {rule.label}
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
 
 const Auth = () => {
   const { login, register, user } = useAuth();
@@ -94,8 +76,9 @@ const Auth = () => {
       await login(v.email, v.password);
       toast({ title: "Bem-vindo de volta!" });
       navigate("/");
-    } catch (e: any) {
-      toast({ title: "Erro no login", description: e.message, variant: "destructive" });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : undefined;
+      toast({ title: "Erro no login", description: message, variant: "destructive" });
     }
   };
 
@@ -104,8 +87,9 @@ const Auth = () => {
       await register(v.name, v.email, v.password);
       toast({ title: "Conta criada!" });
       navigate("/");
-    } catch (e: any) {
-      toast({ title: "Erro no cadastro", description: e.message, variant: "destructive" });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : undefined;
+      toast({ title: "Erro no cadastro", description: message, variant: "destructive" });
     }
   };
 

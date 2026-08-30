@@ -1,44 +1,25 @@
 /**
- * reviewService — reviews mockadas.
+ * reviewService — avaliações via API real.
  *
  * Contrato:
- *   getByProductId(productId)  -> Promise<Review[]>
- *   create(data)               -> Promise<Review>
+ *   getByProductId(productId)              -> Promise<Review[]>
+ *   create(productId, { rating, comment }) -> Promise<Review>
  */
 
-import { mockReviews, Review } from "@/mocks/reviews";
+import { apiFetch } from "@/lib/api";
+import type { Review } from "@/types/review";
 
-const STORAGE_KEY = "marketplace_reviews";
-const LATENCY = 200;
-
-const delay = <T,>(data: T): Promise<T> =>
-  new Promise((resolve) => setTimeout(() => resolve(data), LATENCY));
-
-function load(): Review[] {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored) return JSON.parse(stored);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(mockReviews));
-  return mockReviews;
-}
-
-function save(reviews: Review[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(reviews));
+export interface ReviewInput {
+  rating: number;
+  comment: string;
 }
 
 export const reviewService = {
   async getByProductId(productId: string): Promise<Review[]> {
-    return delay(load().filter((r) => r.productId === productId));
+    return apiFetch<Review[]>(`/products/${productId}/reviews`);
   },
 
-  async create(data: Omit<Review, "id" | "createdAt">): Promise<Review> {
-    const reviews = load();
-    const newReview: Review = {
-      ...data,
-      id: `r${Date.now()}`,
-      createdAt: new Date().toISOString(),
-    };
-    reviews.push(newReview);
-    save(reviews);
-    return delay(newReview);
+  async create(productId: string, data: ReviewInput): Promise<Review> {
+    return apiFetch<Review>(`/products/${productId}/reviews`, { method: "POST", body: data });
   },
 };

@@ -59,8 +59,9 @@ const Sell = () => {
     try {
       const urls = await uploadService.uploadImages(files);
       setImages((prev) => [...prev, ...urls]);
-    } catch (err: any) {
-      toast({ title: "Erro ao enviar imagem", description: err.message, variant: "destructive" });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : undefined;
+      toast({ title: "Erro ao enviar imagem", description: message, variant: "destructive" });
     } finally {
       setUploading(false);
     }
@@ -88,8 +89,9 @@ const Sell = () => {
         toast({ title: "Anúncio publicado!" });
       }
       navigate("/my-listings");
-    } catch (err: any) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : undefined;
+      toast({ title: "Erro", description: message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
