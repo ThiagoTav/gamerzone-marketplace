@@ -6,3 +6,6 @@ uploads/*
 !uploads/products
 uploads/products/*
 !uploads/products/.gitkeep
+!uploads/avatars
+uploads/avatars/*
+!uploads/avatars/.gitkeep

@@ -7,13 +7,16 @@ import { Badge } from "@/components/ui/badge";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { ArrowLeft, ShoppingCart, Star, Store } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Textarea } from "@/components/ui/textarea";
+import { StarRatingInput } from "@/components/StarRatingInput";
 import { productService } from "@/services/productService";
 import { reviewService } from "@/services/reviewService";
 import { authService } from "@/services/authService";
-import { resolveImageUrl } from "@/lib/api";
+import { ApiError, resolveImageUrl } from "@/lib/api";
 import type { Product } from "@/types/product";
-import type { Review } from "@/mocks/reviews";
+import type { Review } from "@/types/review";
 import type { User } from "@/types/user";
+import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,6 +28,10 @@ const ProductDetail = () => {
   const [seller, setSeller] = useState<User | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const { user } = useAuth();
   const { addItem } = useCart();
   const { toast } = useToast();
 
@@ -51,8 +58,44 @@ const ProductDetail = () => {
 
   const handleAdd = async () => {
     if (!product) return;
-    await addItem(product.id, quantity);
-    toast({ title: "Adicionado ao carrinho!", description: `${quantity}x ${product.title}` });
+    try {
+      await addItem(product.id, quantity);
+      toast({ title: "Adicionado ao carrinho!", description: `${quantity}x ${product.title}` });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : undefined;
+      toast({ title: "Erro ao adicionar ao carrinho", description: message, variant: "destructive" });
+    }
+  };
+
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!product) return;
+    if (reviewRating === 0) {
+      toast({ title: "Selecione uma nota", variant: "destructive" });
+      return;
+    }
+    const comment = reviewComment.trim();
+    if (!comment) {
+      toast({ title: "Escreva um comentário", variant: "destructive" });
+      return;
+    }
+    setSubmittingReview(true);
+    try {
+      const newReview = await reviewService.create(product.id, { rating: reviewRating, comment });
+      setReviews((prev) => [newReview, ...prev]);
+      setReviewRating(0);
+      setReviewComment("");
+      toast({ title: "Avaliação enviada!" });
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 409) {
+        toast({ title: "Você já avaliou este produto", variant: "destructive" });
+      } else {
+        const message = err instanceof Error ? err.message : undefined;
+        toast({ title: "Erro ao enviar avaliação", description: message, variant: "destructive" });
+      }
+    } finally {
+      setSubmittingReview(false);
+    }
   };
 
   if (loading) {
@@ -137,16 +180,19 @@ const ProductDetail = () => {
                 </div>
               )}
 
-              <div className="text-5xl font-bold bg-gradient-gamer bg-clip-text text-transparent mb-6">
+              <div className="text-5xl font-bold bg-gradient-gamer bg-clip-text text-transparent mb-2">
                 R$ {product.price.toFixed(2)}
               </div>
+              <p className={`text-sm ${product.stock === 0 ? "text-destructive" : "text-muted-foreground"} mb-4`}>
+                {product.stock === 0 ? "Esgotado" : `${product.stock} em estoque`}
+              </p>
             </div>
 
             {seller && (
               <Card className="bg-gradient-card border-border">
                 <CardContent className="p-4 flex items-center gap-3">
                   <Avatar>
-                    <AvatarImage src={seller.avatar} />
+                    <AvatarImage src={resolveImageUrl(seller.avatar ?? "")} />
                     <AvatarFallback>{seller.name[0]}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
@@ -169,16 +215,22 @@ const ProductDetail = () => {
               </CardContent>
             </Card>
 
-            <div className="flex gap-4">
-              <div className="flex items-center border border-border rounded-lg overflow-hidden">
-                <Button variant="ghost" size="sm" onClick={() => setQuantity(Math.max(1, quantity - 1))} className="rounded-none">-</Button>
-                <span className="px-6 font-semibold">{quantity}</span>
-                <Button variant="ghost" size="sm" onClick={() => setQuantity(quantity + 1)} className="rounded-none">+</Button>
+            {product.stock > 0 ? (
+              <div className="flex gap-4">
+                <div className="flex items-center border border-border rounded-lg overflow-hidden">
+                  <Button variant="ghost" size="sm" onClick={() => setQuantity((q) => Math.max(1, q - 1))} className="rounded-none">-</Button>
+                  <span className="px-6 font-semibold">{quantity}</span>
+                  <Button variant="ghost" size="sm" onClick={() => setQuantity((q) => Math.min(product.stock, q + 1))} className="rounded-none">+</Button>
+                </div>
+                <Button onClick={handleAdd} className="flex-1 bg-gradient-gamer hover:opacity-90 text-lg h-12 shadow-glow-primary">
+                  <ShoppingCart className="mr-2 h-5 w-5" /> Adicionar ao Carrinho
+                </Button>
               </div>
-              <Button onClick={handleAdd} className="flex-1 bg-gradient-gamer hover:opacity-90 text-lg h-12 shadow-glow-primary">
-                <ShoppingCart className="mr-2 h-5 w-5" /> Adicionar ao Carrinho
+            ) : (
+              <Button disabled className="w-full text-lg h-12">
+                Esgotado
               </Button>
-            </div>
+            )}
           </div>
         </div>
 
@@ -200,6 +252,35 @@ const ProductDetail = () => {
           <h3 className="text-3xl font-bold mb-6">
             Avaliações dos <span className="text-primary">Clientes</span>
           </h3>
+
+          {user && user.id !== product.sellerId && (
+            <Card className="bg-gradient-card border-border mb-6">
+              <CardContent className="p-6">
+                <h4 className="font-semibold mb-3">Deixe sua avaliação</h4>
+                <form onSubmit={handleReviewSubmit} className="space-y-3">
+                  <StarRatingInput value={reviewRating} onChange={setReviewRating} />
+                  <Textarea
+                    placeholder="Conte como foi sua experiência com o produto..."
+                    rows={3}
+                    value={reviewComment}
+                    onChange={(e) => setReviewComment(e.target.value)}
+                  />
+                  <Button type="submit" disabled={submittingReview} className="bg-gradient-gamer hover:opacity-90">
+                    {submittingReview ? "Enviando..." : "Enviar avaliação"}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          )}
+
+          {!user && (
+            <Card className="bg-gradient-card border-border mb-6 p-6 text-center">
+              <p className="text-muted-foreground">
+                <Link to="/auth" className="text-primary hover:underline">Faça login</Link> para avaliar este produto.
+              </p>
+            </Card>
+          )}
+
           {reviews.length === 0 ? (
             <Card className="bg-gradient-card border-border p-8 text-center">
               <p className="text-muted-foreground">Nenhuma avaliação ainda.</p>
@@ -210,6 +291,7 @@ const ProductDetail = () => {
                 <Card key={r.id} className="bg-gradient-card border-border">
                   <CardContent className="p-6 flex gap-4">
                     <Avatar className="border-2 border-primary">
+                      <AvatarImage src={resolveImageUrl(r.authorAvatar ?? "")} />
                       <AvatarFallback className="bg-primary/20 text-primary">
                         {r.authorName.split(" ").map((n) => n[0]).join("")}
                       </AvatarFallback>

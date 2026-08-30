@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Star } from "lucide-react";
 import { authService } from "@/services/authService";
 import { productService } from "@/services/productService";
+import { resolveImageUrl } from "@/lib/api";
 import type { User } from "@/types/user";
 import type { Product } from "@/types/product";
 
@@ -42,7 +43,7 @@ const SellerProfile = () => {
         <Card className="bg-gradient-card border-border mb-8">
           <CardContent className="p-6 flex items-center gap-6 flex-wrap">
             <Avatar className="h-24 w-24 border-4 border-primary shadow-glow-primary">
-              <AvatarImage src={seller.avatar} />
+              <AvatarImage src={resolveImageUrl(seller.avatar ?? "")} />
               <AvatarFallback className="text-2xl">{seller.name[0]}</AvatarFallback>
             </Avatar>
             <div className="flex-1">

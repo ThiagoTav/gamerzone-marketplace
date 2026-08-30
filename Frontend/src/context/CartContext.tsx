@@ -13,40 +13,41 @@ interface CartContextType {
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
-const GUEST_ID = "guest";
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [items, setItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const userId = user?.id ?? GUEST_ID;
-
   const refresh = useCallback(async () => {
     setLoading(true);
-    const data = await cartService.getCart(userId);
+    const data = await cartService.getCart();
     setItems(data);
     setLoading(false);
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    // espera a checagem de sessão terminar antes de buscar o carrinho —
+    // evita buscar o carrinho de convidado e, um instante depois, o do
+    // usuário logado (a troca de `user` já dispara um novo refresh sozinha,
+    // pegando o carrinho migrado no login/registro).
+    if (!authLoading) refresh();
+  }, [user, authLoading, refresh]);
 
   const addItem = async (productId: string, quantity = 1) => {
-    const data = await cartService.addItem(userId, productId, quantity);
+    const data = await cartService.addItem(productId, quantity);
     setItems(data);
   };
   const removeItem = async (productId: string) => {
-    const data = await cartService.removeItem(userId, productId);
+    const data = await cartService.removeItem(productId);
     setItems(data);
   };
   const updateQuantity = async (productId: string, quantity: number) => {
-    const data = await cartService.updateQuantity(userId, productId, quantity);
+    const data = await cartService.updateQuantity(productId, quantity);
     setItems(data);
   };
   const clear = async () => {
-    await cartService.clear(userId);
+    await cartService.clear();
     setItems([]);
   };
 

@@ -1,4 +1,4 @@
-import { ShoppingCart, Search, User, LogOut, Zap, Store, Package } from "lucide-react";
+import { ShoppingCart, Search, User, LogOut, Zap, Store, Package, Users, ShoppingBag, Banknote } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -49,6 +49,12 @@ const Navbar = () => {
           </form>
 
           <div className="flex items-center gap-2">
+            <Link to="/sellers" className="hidden sm:block">
+              <Button variant="outline" className="border-border hover:border-primary hover:text-primary">
+                <Users className="mr-2 h-4 w-4" /> Vendedores
+              </Button>
+            </Link>
+
             <Link to="/sell" className="hidden sm:block">
               <Button className="bg-gradient-gamer hover:opacity-90 shadow-glow-primary">
                 <Store className="mr-2 h-4 w-4" /> Vender
@@ -65,8 +71,18 @@ const Navbar = () => {
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel>Olá, {user.name.split(" ")[0]}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate("/profile")}>
+                    <User className="mr-2 h-4 w-4" /> Minha Conta
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/orders")}>
+                    <ShoppingBag className="mr-2 h-4 w-4" /> Meus Pedidos
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => navigate("/my-listings")}>
                     <Package className="mr-2 h-4 w-4" /> Meus Anúncios
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/sales")}>
+                    <Banknote className="mr-2 h-4 w-4" /> Vendas
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate("/sell")}>
                     <Store className="mr-2 h-4 w-4" /> Vender Produto

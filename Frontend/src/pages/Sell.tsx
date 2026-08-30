@@ -27,6 +27,7 @@ const Sell = () => {
   const [category, setCategory] = useState(CATEGORIES[0]);
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
+  const [stock, setStock] = useState("");
   const [condition, setCondition] = useState<"new" | "used">("new");
   const [images, setImages] = useState<string[]>([]);
   const [specs, setSpecs] = useState<{ key: string; value: string }[]>([{ key: "", value: "" }]);
@@ -45,6 +46,7 @@ const Sell = () => {
       setCategory(p.category);
       setDescription(p.description);
       setPrice(String(p.price));
+      setStock(String(p.stock));
       setCondition(p.condition);
       setImages(p.images);
       setSpecs(Object.entries(p.specs).map(([k, v]) => ({ key: k, value: v })));
@@ -59,8 +61,9 @@ const Sell = () => {
     try {
       const urls = await uploadService.uploadImages(files);
       setImages((prev) => [...prev, ...urls]);
-    } catch (err: any) {
-      toast({ title: "Erro ao enviar imagem", description: err.message, variant: "destructive" });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : undefined;
+      toast({ title: "Erro ao enviar imagem", description: message, variant: "destructive" });
     } finally {
       setUploading(false);
     }
@@ -77,7 +80,7 @@ const Sell = () => {
     const specsObj: Record<string, string> = {};
     specs.forEach((s) => { if (s.key && s.value) specsObj[s.key] = s.value; });
     const data = {
-      title, category, description, price: Number(price), condition, images, specs: specsObj,
+      title, category, description, price: Number(price), stock: Number(stock), condition, images, specs: specsObj,
     };
     try {
       if (isEdit && id) {
@@ -88,8 +91,9 @@ const Sell = () => {
         toast({ title: "Anúncio publicado!" });
       }
       navigate("/my-listings");
-    } catch (err: any) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : undefined;
+      toast({ title: "Erro", description: message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -125,15 +129,18 @@ const Sell = () => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div><Label>Preço (R$)</Label>
-                  <Input required type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} />
+                  <Input required type="number" step="0.01" min="0" value={price} onChange={(e) => setPrice(e.target.value)} />
                 </div>
-                <div>
-                  <Label>Condição</Label>
-                  <RadioGroup value={condition} onValueChange={(v) => setCondition(v as any)} className="flex gap-4 h-10 items-center">
-                    <div className="flex items-center gap-2"><RadioGroupItem value="new" id="c-new" /><Label htmlFor="c-new">Novo</Label></div>
-                    <div className="flex items-center gap-2"><RadioGroupItem value="used" id="c-used" /><Label htmlFor="c-used">Usado</Label></div>
-                  </RadioGroup>
+                <div><Label>Estoque</Label>
+                  <Input required type="number" step="1" min="0" value={stock} onChange={(e) => setStock(e.target.value)} />
                 </div>
+              </div>
+              <div>
+                <Label>Condição</Label>
+                <RadioGroup value={condition} onValueChange={(v) => setCondition(v as "new" | "used")} className="flex gap-4 h-10 items-center">
+                  <div className="flex items-center gap-2"><RadioGroupItem value="new" id="c-new" /><Label htmlFor="c-new">Novo</Label></div>
+                  <div className="flex items-center gap-2"><RadioGroupItem value="used" id="c-used" /><Label htmlFor="c-used">Usado</Label></div>
+                </RadioGroup>
               </div>
             </CardContent>
           </Card>

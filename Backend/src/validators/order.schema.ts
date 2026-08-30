@@ -8,3 +8,7 @@ export const orderSchema = z.object({
     zip: z.string().min(1),
   }),
 });
+
+export const orderItemStatusSchema = z.object({
+  status: z.enum(["shipped", "delivered", "cancelled"]),
+});

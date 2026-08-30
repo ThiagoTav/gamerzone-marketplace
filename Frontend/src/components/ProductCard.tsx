@@ -26,8 +26,13 @@ const ProductCard = ({ product }: ProductCardProps) => {
   const handleAdd = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    await addItem(product.id);
-    toast({ title: "Adicionado ao carrinho!", description: product.title });
+    try {
+      await addItem(product.id);
+      toast({ title: "Adicionado ao carrinho!", description: product.title });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : undefined;
+      toast({ title: "Erro ao adicionar ao carrinho", description: message, variant: "destructive" });
+    }
   };
 
   return (
@@ -40,7 +45,11 @@ const ProductCard = ({ product }: ProductCardProps) => {
             className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-500"
           />
           <Badge className="absolute top-3 right-3 bg-primary/90">{product.category}</Badge>
-          {product.condition === "used" && (
+          {product.stock === 0 ? (
+            <Badge variant="secondary" className="absolute top-3 left-3 bg-gamer-red text-white">
+              Esgotado
+            </Badge>
+          ) : product.condition === "used" && (
             <Badge variant="secondary" className="absolute top-3 left-3 bg-gamer-red text-white">
               Usado
             </Badge>
@@ -68,7 +77,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
             Ver Detalhes
           </Button>
         </Link>
-        <Button size="icon" onClick={handleAdd} className="bg-gradient-gamer hover:opacity-90 shadow-glow-primary">
+        <Button size="icon" onClick={handleAdd} disabled={product.stock === 0} className="bg-gradient-gamer hover:opacity-90 shadow-glow-primary">
           <ShoppingCart className="h-4 w-4" />
         </Button>
       </CardFooter>
