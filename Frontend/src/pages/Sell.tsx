@@ -8,10 +8,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, Upload, ArrowLeft } from "lucide-react";
+import { X, Upload, ArrowLeft, Sparkles } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { productService } from "@/services/productService";
 import { uploadService } from "@/services/uploadService";
+import { aiService } from "@/services/aiService";
 import { resolveImageUrl } from "@/lib/api";
 import { CATEGORIES } from "@/types/product";
 import { useToast } from "@/hooks/use-toast";
@@ -33,6 +34,8 @@ const Sell = () => {
   const [specs, setSpecs] = useState<{ key: string; value: string }[]>([{ key: "", value: "" }]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [aiBullets, setAiBullets] = useState("");
+  const [generatingListing, setGeneratingListing] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/auth");
@@ -66,6 +69,26 @@ const Sell = () => {
       toast({ title: "Erro ao enviar imagem", description: message, variant: "destructive" });
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleGenerateListing = async () => {
+    if (!aiBullets.trim()) return;
+    setGeneratingListing(true);
+    try {
+      const draft = await aiService.generateListing(aiBullets);
+      setTitle(draft.title);
+      setDescription(draft.description);
+      if (draft.specs.length > 0) {
+        const specsAreEmpty = specs.length === 1 && !specs[0].key && !specs[0].value;
+        setSpecs(specsAreEmpty ? draft.specs : [...specs, ...draft.specs]);
+      }
+      toast({ title: "Rascunho gerado!", description: "Revise os campos antes de publicar." });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : undefined;
+      toast({ title: "Erro ao gerar rascunho", description: message, variant: "destructive" });
+    } finally {
+      setGeneratingListing(false);
     }
   };
 
@@ -111,6 +134,25 @@ const Sell = () => {
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          <Card className="bg-gradient-card border-border">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" /> Gerar com IA
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Textarea
+                rows={3}
+                placeholder="Escreva alguns pontos soltos sobre o produto (ex: mouse gamer, 16000 DPI, RGB, com fio, 90g)"
+                value={aiBullets}
+                onChange={(e) => setAiBullets(e.target.value)}
+              />
+              <Button type="button" variant="outline" disabled={generatingListing || !aiBullets.trim()} onClick={handleGenerateListing}>
+                {generatingListing ? "Gerando..." : "Gerar rascunho"}
+              </Button>
+            </CardContent>
+          </Card>
+
           <Card className="bg-gradient-card border-border">
             <CardHeader><CardTitle>Informações</CardTitle></CardHeader>
             <CardContent className="space-y-4">

@@ -1,27 +1,13 @@
 import { Request, Response } from "express";
-import { FilterQuery } from "mongoose";
 import { Product } from "../models/Product";
 import { asyncHandler } from "../utils/asyncHandler";
 import { HttpError } from "../utils/HttpError";
 import { parseOrThrow } from "../utils/validate";
 import { productSchema, productStatusSchema, productUpdateSchema } from "../validators/product.schema";
+import { buildProductFilter } from "../services/productFilter";
 
 export const getAll = asyncHandler(async (req: Request, res: Response) => {
-  const { search, category, condition, minPrice, maxPrice } = req.query;
-
-  const filter: FilterQuery<typeof Product> = { status: "active" };
-  if (search) {
-    const regex = new RegExp(String(search), "i");
-    filter.$or = [{ title: regex }, { category: regex }];
-  }
-  if (category) filter.category = String(category);
-  if (condition) filter.condition = String(condition);
-  if (minPrice || maxPrice) {
-    filter.price = {};
-    if (minPrice) filter.price.$gte = Number(minPrice);
-    if (maxPrice) filter.price.$lte = Number(maxPrice);
-  }
-
+  const filter = buildProductFilter(req.query as Record<string, string>);
   const products = await Product.find(filter).sort({ createdAt: -1 });
   res.json(products);
 });

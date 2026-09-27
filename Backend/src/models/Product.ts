@@ -13,6 +13,15 @@ const productSchema = new Schema(
     images: { type: [String], default: [] },
     specs: { type: Map, of: String, default: {} },
     sellerId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    // Cache do resumo de reviews gerado por IA — regenerado só quando o
+    // número de reviews muda (ver reviewSummary.ts). Nunca required: produtos
+    // existentes e recém-criados começam sem resumo até terem reviews.
+    reviewSummary: {
+      pros: { type: [String], default: [] },
+      cons: { type: [String], default: [] },
+      reviewCount: { type: Number, default: 0 },
+      generatedAt: { type: Date, default: null },
+    },
   },
   { timestamps: true }
 );

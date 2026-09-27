@@ -5,6 +5,7 @@ import productsRoutes from "./products.routes";
 import cartRoutes from "./cart.routes";
 import ordersRoutes from "./orders.routes";
 import uploadsRoutes from "./uploads.routes";
+import aiRoutes from "./ai.routes";
 
 const router = Router();
 
@@ -15,5 +16,6 @@ router.use("/products", productsRoutes);
 router.use("/cart", cartRoutes);
 router.use("/orders", ordersRoutes);
 router.use("/uploads", uploadsRoutes);
+router.use("/ai", aiRoutes);
 
 export default router;

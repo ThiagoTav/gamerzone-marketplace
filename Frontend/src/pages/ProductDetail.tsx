@@ -5,17 +5,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import { ArrowLeft, ShoppingCart, Star, Store } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Star, Store, CheckCircle2, XCircle, Sparkles } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { StarRatingInput } from "@/components/StarRatingInput";
 import { productService } from "@/services/productService";
 import { reviewService } from "@/services/reviewService";
 import { authService } from "@/services/authService";
+import { aiService } from "@/services/aiService";
 import { ApiError, resolveImageUrl } from "@/lib/api";
 import type { Product } from "@/types/product";
 import type { Review } from "@/types/review";
 import type { User } from "@/types/user";
+import type { ReviewSummary } from "@/types/ai";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/hooks/use-toast";
@@ -26,6 +28,7 @@ const ProductDetail = () => {
   const [product, setProduct] = useState<Product | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [seller, setSeller] = useState<User | null>(null);
+  const [reviewSummary, setReviewSummary] = useState<ReviewSummary | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
   const [reviewRating, setReviewRating] = useState(0);
@@ -47,6 +50,10 @@ const ProductDetail = () => {
         ]);
         setReviews(r);
         setSeller(s);
+        // Não bloqueia o carregamento da página — falha vira card ausente, silenciosamente.
+        if (r.length > 0) {
+          aiService.getReviewSummary(p.id).then(setReviewSummary).catch(() => setReviewSummary(null));
+        }
       }
       setLoading(false);
     });
@@ -252,6 +259,39 @@ const ProductDetail = () => {
           <h3 className="text-3xl font-bold mb-6">
             Avaliações dos <span className="text-primary">Clientes</span>
           </h3>
+
+          {reviewSummary && (reviewSummary.pros.length > 0 || reviewSummary.cons.length > 0) && (
+            <Card className="bg-gradient-card border-border mb-6">
+              <CardContent className="p-6">
+                <h4 className="font-semibold mb-4 flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" /> Resumo gerado por IA
+                </h4>
+                <div className="grid sm:grid-cols-2 gap-6">
+                  <div>
+                    <ul className="space-y-2">
+                      {reviewSummary.pros.map((p, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm">
+                          <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" /> {p}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <ul className="space-y-2">
+                      {reviewSummary.cons.map((c, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm">
+                          <XCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" /> {c}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-4">
+                  Baseado em {reviewSummary.reviewCount} avaliação(ões)
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           {user && user.id !== product.sellerId && (
             <Card className="bg-gradient-card border-border mb-6">
