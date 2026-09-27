@@ -18,6 +18,7 @@ import Profile from "./pages/Profile";
 import MyOrders from "./pages/MyOrders";
 import MySales from "./pages/MySales";
 import NotFound from "./pages/NotFound";
+import AiChatWidget from "@/components/AiChatWidget";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +47,7 @@ const App = () => (
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+            <AiChatWidget />
           </CartProvider>
         </AuthProvider>
       </BrowserRouter>

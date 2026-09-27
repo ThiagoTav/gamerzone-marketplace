@@ -13,6 +13,7 @@ export interface Product {
   images: string[];
   specs: Record<string, string>;
   sellerId: string;
+  reviewSummary?: { pros: string[]; cons: string[]; reviewCount: number; generatedAt: string } | null;
   createdAt: string;
   updatedAt: string;
 }
